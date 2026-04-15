@@ -5,7 +5,6 @@
 (var t 0)
 (fn Gameover []
   (cls couleur-fond)
-  (print "GAME OVER !" 87 64  couleur-texte)
+  (print "GAME OVER !" 87 64  couleur-texte))
 (fn _G.TIC []
   (Gameover))
-
