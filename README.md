@@ -9,6 +9,7 @@
 - [ ] SFX
 - [ ] Level Design
 - [ ] Graphismes
+- [x] Écran GameOver
 
 #### Écran de démarrage :
 ![Startscreen](screenshots/Startscreen.png)
