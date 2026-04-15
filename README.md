@@ -10,4 +10,4 @@
 - [ ] Level Design
 - [ ] Graphismes
 
-<img src="https://github.com/LB-7567/24h-pour-coder-2026/blob/main/Startscreen.png" alt="Screenshot de l'écran de démarrage">
+![Startscreen](screenshots/Startscreen.png)
