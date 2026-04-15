@@ -7,7 +7,8 @@
 - [x] Gravité
 - [x] Readme approximatif 
 - [ ] SFX
-- [ ] Level Design
+- [x] Level Design
+- [ ] Boss
 - [ ] Graphismes
 - [x] Écran GameOver
 
