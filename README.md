@@ -10,5 +10,5 @@
 - [ ] Level Design
 - [ ] Graphismes
 
- Écran de démarrage 
+#### Écran de démarrage :
 ![Startscreen](screenshots/Startscreen.png)
