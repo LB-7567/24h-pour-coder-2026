@@ -4,5 +4,7 @@
 ### Un plateformer 2D 
 
 - [x] Écran titre 
-- [ ] Gravité
+- [x] Gravité
 - [x] Readme approximatif 
+- [ ] SFX
+- [ ] Level Design
