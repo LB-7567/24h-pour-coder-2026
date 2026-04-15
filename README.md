@@ -10,6 +10,4 @@
 - [ ] Level Design
 - [ ] Graphismes
 
-![Capture d'écrab de l'écran de démarrage](https://github.com/LB-7567/24h-pour-coder-2026/tree/main/Startscreen.png?raw=false)
-
-[screenshot](screenshots/Startscreen.png)
+<img src="https://github.com/LB-7567/24h-pour-coder-2026/tree/main/screenshots/Startscreen.png" alt="Screenshot de l'écran de démarrage">
