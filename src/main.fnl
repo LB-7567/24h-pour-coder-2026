@@ -82,7 +82,16 @@
   (set player.coyote-timer 0)
   (set player.jump-buffer 0)
   (set etat-jeu "accueil"))
-
+(fn Gameover []
+  (cls 0)
+  (print "GAME OVER !" 87 64  2)
+  (print "Restart ? Press down arrow" 57 94 12)
+  (print "Exit ? Press upper arrow" 57 105 12)
+  (if (btnp E)
+      (respawn))
+      (if (btnp A)
+  	(exit))
+  )
 ;; ============================================================
 ;; 4. BOUCLE PRINCIPALE
 ;; ============================================================
@@ -100,7 +109,6 @@
         (print ">> PRESS Z TO BOOT <<" 70 90 couleur-texte))
       ;; FIX : btnp (edge) et non btn (hold) pour éviter le skip immédiat
       (if (btnp 4) (set etat-jeu "jeu")))
-
     ;; ============================
     ;; MODE JEU
     ;; ============================
@@ -257,7 +265,7 @@
       ;; -----------------------------------------------
       (if (or (> player.y 140)
               (mortel? (+ player.x 8) (+ player.y 8)))
-        (respawn))
+        (Gameover))
 
       ;; -----------------------------------------------
       ;; F. RENDU
