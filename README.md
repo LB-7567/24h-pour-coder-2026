@@ -9,7 +9,7 @@
 - [ ] SFX
 - [x] Level Design
 - [ ] Boss
-- [ ] Graphismes
+- [x] Graphismes
 - [x] Écran GameOver
 
 #### Écran de démarrage :
