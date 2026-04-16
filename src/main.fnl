@@ -1,10 +1,13 @@
 ;; script: fennel
-(var couleur-texte 2)
-(var couleur-fond 0)
-(var couleur-textee 12)
-(var t 0)
 (fn Gameover []
-  (cls couleur-fond)
-  (print "GAME OVER !" 87 64  couleur-texte))
+  (cls 0)
+  (print "GAME OVER !" 87 64  2)
+  (print "Restart ? Press down arrow" 57 94 12)
+  (print "Exit ? Press upper arrow" 57 105 12)
+  ;;(if (btn E)
+      ;;mettre la fonction pour relancer le jeu 
+    ;; )
+      (if (btn A)
+  	(exit)))
 (fn _G.TIC []
   (Gameover))
