@@ -82,6 +82,7 @@
   (set player.coyote-timer 0)
   (set player.jump-buffer 0)
   (set etat-jeu "accueil"))
+
 (fn Gameover []
   (cls 0)
   (print "GAME OVER !" 87 64  2)
@@ -89,8 +90,8 @@
   (print "Exit ? Press upper arrow" 57 105 12)
   (if (btnp E)
       (respawn))
-      (if (btnp A)
-  	(exit))
+  (if (btnp A)
+      (exit))
   )
 ;; ============================================================
 ;; 4. BOUCLE PRINCIPALE
@@ -265,7 +266,7 @@
       ;; -----------------------------------------------
       (if (or (> player.y 140)
               (mortel? (+ player.x 8) (+ player.y 8)))
-        (Gameover))
+              (Gameover))
 
       ;; -----------------------------------------------
       ;; F. RENDU
