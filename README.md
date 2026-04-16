@@ -10,7 +10,7 @@
 - [x] Level Design
 - [ ] Boss
 - [x] Graphismes
-- [x] Écran GameOver
+- [x] Écran GameOver ~~A moitié~~ 
 
 #### Écran de démarrage :
 ![Startscreen](screenshots/Startscreenv2.png)
