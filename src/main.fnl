@@ -428,4 +428,4 @@
         ;; (print (.. "j:" player.jumps " dash:" player.dash-timer) 2 10 7)
         ;; (print (.. "coy:" player.coyote-timer " buf:" player.jump-buffer) 2 18 7)
         ;; (print (.. "ckpt:" checkpoint.x "," checkpoint.y) 2 26 7)
-        ))))
+        )))) 
