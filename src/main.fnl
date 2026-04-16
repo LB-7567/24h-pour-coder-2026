@@ -1,24 +1,325 @@
-;; title:  Template de base
-;; author: Quentin
-;; desc:   Template de base pour le 24h pour coder 2026
-;; script: fennel
+;; ============================================================
+;; HACK THE SYSTEM — Platformer Fennel/TIC-80
+;; Inspiré de Celeste & Super Mario
+;; ============================================================
 
-(var couleur-texte 0)  ; 6 = vert. Essaie 11 (bleu clair)
-(var couleur-fond 12)  ; 12 = Blanc. Essaie 0 (Noir)
+;; ============================================================
+;; 1. ÉTAT GLOBAL
+;; ============================================================
 
-;; Variable pour l'animation
-(var t 0)
+;; script: fennel 
+(var couleur-fond 0)
+(var couleur-texte 6)
+(global etat-jeu "accueil")
+(global timer 0)
 
-;; Boucle principale exécutée à 60 FPS
+;; JOUEUR
+;;   dir          : 1=droite, -1=gauche (flip sprite + direction dash)
+;;   coyote-timer : frames de grâce après avoir quitté le sol (Celeste)
+;;   jump-buffer  : mémorise un saut pressé 6 frames en avance (Celeste)
+;;   dash-used    : 1 seul dash en l'air, se recharge au sol (Celeste)
+;;   dash-vx/vy   : vecteur du dash courant (8 directions)
+(global player
+  {:x 16 :y 16 :vx 0 :vy 0 :w 16 :h 16
+   :au-sol      false
+   :mode-bleu   false
+   :jumps       2          ;; 2 = saut sol + double saut
+   :dir         1
+   :coyote-timer 0
+   :jump-buffer  0
+   :dash-timer   0
+   :dash-used    false
+   :dash-vx      0
+   :dash-vy      0})
+
+;; ============================================================
+;; 2. DÉTECTION DE COLLISION
+;; ============================================================
+
+;; Tuiles solides (murs / sol)
+(fn solide? [x y]
+  (let [id (mget (// x 8) (// y 8))]
+    (or (= id 5) 
+        (= id 21)
+        ;; Le bloc 6 (rouge) est solide SI le joueur est en mode bleu
+        (and (= id 6) player.mode-bleu)
+        ;; Le bloc 7 (bleu) est solide SI le joueur n'est PAS en mode bleu (donc rouge)
+        (and (= id 7) (not player.mode-bleu)))))
+
+;; Tuiles mortelles (pics / malware)
+(fn mortel? [x y]
+  (let [id (mget (// x 8) (// y 8))]
+    (or (= id 2) (= id 22))))
+
+;; Mur à droite du joueur (pour wall jump)
+(fn touche-mur-droite? []
+  (or (solide? (+ player.x 16) (+ player.y 2))
+      (solide? (+ player.x 16) (+ player.y 13))))
+
+;; Mur à gauche du joueur
+(fn touche-mur-gauche? []
+  (or (solide? (- player.x 1) (+ player.y 2))
+      (solide? (- player.x 1) (+ player.y 13))))
+
+;; ============================================================
+;; 3. UTILITAIRES
+;; ============================================================
+
+;; Retourne le signe d'un nombre (1, -1 ou 0)
+(fn sign [n]
+  (if (> n 0) 1 (if (< n 0) -1 0)))
+
+;; Reinitialise le joueur après mort
+(fn respawn []
+  (set player.x 16)
+  (set player.y 16)
+  (set player.vx 0)
+  (set player.vy 0)
+  (set player.jumps 2)
+  (set player.au-sol false)
+  (set player.dash-used false)
+  (set player.dash-timer 0)
+  (set player.coyote-timer 0)
+  (set player.jump-buffer 0)
+  (set etat-jeu "accueil"))
+(fn Gameover []
+  (cls 0)
+  (print "GAME OVER !" 87 64  2)
+  (print "Restart ? Press down arrow" 57 94 12)
+  (print "Exit ? Press upper arrow" 57 105 12)
+  (if (btnp E)
+      (respawn))
+      (if (btnp A)
+  	(exit))
+  )
+;; ============================================================
+;; 4. BOUCLE PRINCIPALE
+;; ============================================================
 (fn _G.TIC []
-  ;; 1. Nettoie l'écran
-  (cls couleur-fond)
-  
-  ;; 2. Calcule un petit mouvement de vague
-  (var decalage-y (* (math.sin t) 5))
-  
-  ;; 3. Affiche le texte au centre avec l'effet de vague
-  (print "WORKFLOW OPERATIONNEL !" 45 (+ 64 decalage-y) couleur-texte)
-  
-  ;; 4. Fait avancer le temps
-  (set t (+ t 0.1)))
+  (set timer (+ timer 1))
+
+  ;; ============================
+  ;; ÉCRAN TITRE
+  ;; ============================
+  (if (= etat-jeu "accueil")
+    (do
+      (cls couleur-fond)
+      (print "HACK THE SYSTEM" 65 40 11)
+      (if (= (% (// timer 30) 2) 0)
+        (print ">> PRESS Z TO BOOT <<" 70 90 couleur-texte))
+      ;; FIX : btnp (edge) et non btn (hold) pour éviter le skip immédiat
+      (if (btnp 4) (set etat-jeu "jeu")))
+    ;; ============================
+    ;; MODE JEU
+    ;; ============================
+    (do
+      (cls couleur-fond)
+
+      ;; --- CAMÉRA ---
+      (var cam-x (- player.x 120))
+      (if (< cam-x 0) (set cam-x 0))
+      (map (// cam-x 8) 0 32 17 (- 0 (% cam-x 8)) 0)
+
+      ;; --- ÉTAT PRÉCÉDENT (pour coyote time) ---
+      (var etait-au-sol player.au-sol)
+
+      ;; --- DÉCRÉMENT DES TIMERS ---
+      (if (> player.coyote-timer 0)
+        (set player.coyote-timer (- player.coyote-timer 1)))
+      (if (> player.jump-buffer 0)
+        (set player.jump-buffer (- player.jump-buffer 1)))
+
+      ;; --- SWITCH COULEUR (Bouton A / Touche Q ou A sur clavier) ---
+      (if (btnp 6)
+        (set player.mode-bleu (not player.mode-bleu)))
+
+      ;; --- MISE À JOUR DIRECTION ---
+      (if (btn 3) (set player.dir  1))
+      (if (btn 2) (set player.dir -1))
+
+      ;; --- DÉTECTION MURS LATÉRAUX ---
+      (var sur-mur-droite (touche-mur-droite?))
+      (var sur-mur-gauche (touche-mur-gauche?))
+      (var sur-mur (and (not player.au-sol)
+                        (or sur-mur-droite sur-mur-gauche)))
+
+      ;; -----------------------------------------------
+      ;; B. PHYSIQUE HORIZONTALE & DASH
+      ;; -----------------------------------------------
+      (if (> player.dash-timer 0)
+        (do
+          ;; Pendant le dash : applique le vecteur pré-calculé
+          ;; et neutralise la gravité (feeling Celeste)
+          (set player.dash-timer (- player.dash-timer 1))
+          (set player.vx player.dash-vx)
+          (set player.vy player.dash-vy))
+        (do
+          ;; Contrôles normaux avec accélération et vitesse max
+          (if (btn 3) (set player.vx (math.min (+ player.vx 0.8)  3)))
+          (if (btn 2) (set player.vx (math.max (- player.vx 0.8) -3)))
+          ;; Friction : s'arrête progressivement si aucune touche
+          (if (not (or (btn 2) (btn 3)))
+            (set player.vx (* player.vx 0.75)))))
+
+      ;; Déclenchement Dash (bouton X) — FIX : 8 directions
+      ;; La direction dépend des touches directionnelles au moment du dash
+      (if (and (btnp 5) (not player.dash-used))
+        (do
+          (var dvx (* player.dir 5))
+          (var dvy (if (btn 0) -5 (if (btn 1) 5 0)))
+          ;; Normalisation diagonale (vitesse constante dans toutes directions)
+          (if (and (~= dvx 0) (~= dvy 0))
+            (do
+              (set dvx (* dvx 0.707))
+              (set dvy (* dvy 0.707))))
+          (set player.dash-vx dvx)
+          (set player.dash-vy dvy)
+          (set player.dash-timer 12)
+          (set player.dash-used true)))
+
+      ;; --- COLLISION HORIZONTALE ---
+      (var futur-x (+ player.x player.vx))
+      (var offset-x (if (> player.vx 0) 15 0))
+      (if (or (solide? (+ futur-x offset-x) (+ player.y 2))
+              (solide? (+ futur-x offset-x) (+ player.y 13)))
+        (set player.vx 0)
+        (set player.x futur-x))
+
+      ;; -----------------------------------------------
+      ;; C. PHYSIQUE VERTICALE
+      ;; -----------------------------------------------
+
+      ;; Wall slide : ralentit la chute sur un mur (Celeste)
+      (if (and sur-mur (> player.vy 0))
+        (set player.vy (math.min player.vy 1.5)))
+
+      ;; Gravité variable : lâcher Z coupe le saut (style Mario)
+      ;; Pas de gravité pendant le dash
+      (if (= player.dash-timer 0)
+        (do
+          (var gravite
+            (if (and (< player.vy 0) (not (btn 4))) 1.1 0.5))
+          (set player.vy (math.min (+ player.vy gravite) 8))))
+
+      ;; --- COLLISION VERTICALE ---
+      (var futur-y (+ player.y player.vy))
+
+      ;; FIX : Collision PLAFOND (absente de l'original)
+      (if (and (< player.vy 0)
+               (or (solide? player.x           futur-y)
+                   (solide? (+ player.x 15)    futur-y)))
+        (do
+          ;; Snap au bas de la tuile plafond
+          (set futur-y (* (+ (// futur-y 8) 1) 8))
+          (set player.vy 0)))
+
+      ;; Collision SOL
+      (if (and (> player.vy 0)
+               (or (solide? player.x           (+ futur-y 16))
+                   (solide? (+ player.x 15)    (+ futur-y 16))))
+        (do
+          ;; Snap grille : aligne le bas du joueur sur le haut de la tuile
+          (set futur-y (- (* (// (+ futur-y 16) 8) 8) 16))
+          (set player.vy 0)
+          (set player.au-sol true)
+          (set player.jumps 2)
+          (set player.dash-used false))  ;; Recharge du dash au sol
+        (set player.au-sol false))
+
+      (set player.y futur-y)
+
+      ;; Coyote time : fenêtre de grâce si on vient de quitter le bord
+      (if (and etait-au-sol (not player.au-sol))
+        (set player.coyote-timer 6))
+
+      ;; -----------------------------------------------
+      ;; D. LOGIQUE DE SAUT
+      ;; -----------------------------------------------
+
+      ;; Buffer : mémorise le saut 6 frames à l'avance
+      (if (btnp 4)
+        (set player.jump-buffer 6))
+
+      ;; Wall Jump (priorité sur saut normal)
+      (if (and sur-mur (> player.jump-buffer 0))
+        (do
+          (set player.vy -5.5)
+          ;; Rebond dans la direction opposée au mur
+          (set player.vx (* (if sur-mur-droite -1 1) 3.5))
+          (set player.jump-buffer 0))
+
+        ;; Saut normal / coyote / double saut
+        (if (and (> player.jump-buffer 0)
+                 (or player.au-sol
+                     (> player.coyote-timer 0)
+                     (> player.jumps 0)))
+          (do
+            (set player.vy -6)
+            (set player.jump-buffer 0)
+            (set player.coyote-timer 0)
+            (if (> player.jumps 0)
+              (set player.jumps (- player.jumps 1))))))
+
+      ;; -----------------------------------------------
+      ;; E. MORT & REBOOT
+      ;; -----------------------------------------------
+      (if (or (> player.y 140)
+              (mortel? (+ player.x 8) (+ player.y 8)))
+        (Gameover))
+
+      ;; -----------------------------------------------
+      ;; F. RENDU
+      ;; -----------------------------------------------
+      ;; FIX : flip horizontal selon la direction du joueur
+      (var flip (if (= player.dir -1) 1 0))
+      (var id (if player.mode-bleu 258 256))
+      (spr id (- player.x cam-x) player.y 0 1 flip 0 2 2)
+
+      ;; -----------------------------------------------
+      ;; G. PORTAIL ET OBJECTIF FINAL
+      ;; -----------------------------------------------
+      (let [tuile-actuelle (mget (// (+ player.x 8) 8) (// (+ player.y 8) 8))]
+        
+        ;; 1. Le portail de téléportation (ID 10)
+        (if (= tuile-actuelle 10)
+          (do
+            (set player.x (* 15 8)) ;; map-x = 15
+            (set player.y (* 15 8)) ;; map-y = 15
+            (set player.vx 0)
+            (set player.vy 0)))
+
+        ;; 2. Le bloc de victoire (ID 14 - à placer tout en haut du niveau 2)
+        (if (= tuile-actuelle 14)
+          (set etat-jeu "victoire")))
+      ;; ============================
+      ;; ÉCRAN DE VICTOIRE (Pimpé)
+     ;; ============================
+      (if (= etat-jeu "victoire")
+        (do
+          ;; 1. Un fond qui "glitch" légèrement (alterne noir et bleu très sombre)
+          (cls (if (= (% (// timer 10) 2) 0) 0 12))
+
+          ;; 2. Effet de lévitation fluide sur le texte (grâce à math.sin)
+          (var wave-y (+ 35 (* (math.sin (/ timer 10)) 5)))
+          
+          ;; Ombre portée du texte (pour le style)
+          (print "ROOT ACCESS GRANTED" 16 (+ wave-y 1) 0)
+          (print "ROOT ACCESS GRANTED" 15 wave-y 11)
+
+          ;; 3. Le texte de victoire qui clignote façon terminal
+          (if (= (% (// timer 20) 2) 0)
+            (print ">> SYSTEM HACKED <<" 20 65 couleur-texte))
+
+          ;; 4. Ton virus (ID 256) qui saute de joie au milieu de l'écran !
+          ;; math.abs et math.sin créent une courbe de rebond parfaite
+          (var rebond (* (math.abs (math.sin (/ timer 8))) -15))
+          (spr 256 112 (+ 100 rebond) 0 1 0 0 2 2)
+
+          (print "Press Z to reboot" 75 120 5)
+          (if (btnp 4) (respawn))))   
+
+          ;; DEBUG (à commenter en prod) : affiche les valeurs clés
+          ;; (print (.. "vx:" (math.floor player.vx) " vy:" (math.floor player.vy)) 2 2 7)
+          ;; (print (.. "j:" player.jumps " dash:" player.dash-timer) 2 10 7)
+          ;; (print (.. "coy:" player.coyote-timer " buf:" player.jump-buffer) 2 18 7)
+      )))
