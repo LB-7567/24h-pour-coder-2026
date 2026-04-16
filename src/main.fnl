@@ -373,14 +373,15 @@
                 (set player.jumps (- player.jumps 1))))))
 
         ;; -----------------------------------------------
+        ;; -----------------------------------------------
         ;; E. MORT & REBOOT
         ;; -----------------------------------------------
-        ;; FIX : respawn ramène au dernier checkpoint, sans repasser
-        ;; par l'écran titre (etat-jeu reste "jeu")
-        (if (or (> player.y 1100)
+        ;; Le plancher de la mort s'adapte automatiquement à l'étage actuel !
+        (var plancher-mortel (+ checkpoint.y 150))
+
+        (if (or (> player.y plancher-mortel)
                 (mortel? (+ player.x 8) (+ player.y 8)))
           (respawn))
-
         ;; -----------------------------------------------
         ;; F. RENDU
         ;; -----------------------------------------------
