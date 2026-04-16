@@ -39,7 +39,12 @@
 ;; Tuiles solides (murs / sol)
 (fn solide? [x y]
   (let [id (mget (// x 8) (// y 8))]
-    (or (= id 5) (= id 21))))
+    (or (= id 5) 
+        (= id 21)
+        ;; Le bloc 6 (rouge) est solide SI le joueur est en mode bleu
+        (and (= id 6) player.mode-bleu)
+        ;; Le bloc 7 (bleu) est solide SI le joueur n'est PAS en mode bleu (donc rouge)
+        (and (= id 7) (not player.mode-bleu)))))
 
 ;; Tuiles mortelles (pics / malware)
 (fn mortel? [x y]
@@ -115,6 +120,10 @@
         (set player.coyote-timer (- player.coyote-timer 1)))
       (if (> player.jump-buffer 0)
         (set player.jump-buffer (- player.jump-buffer 1)))
+
+      ;; --- SWITCH COULEUR (Bouton A / Touche Q ou A sur clavier) ---
+      (if (btnp 6)
+        (set player.mode-bleu (not player.mode-bleu)))
 
       ;; --- MISE À JOUR DIRECTION ---
       (if (btn 3) (set player.dir  1))
@@ -255,7 +264,7 @@
       ;; -----------------------------------------------
       ;; FIX : flip horizontal selon la direction du joueur
       (var flip (if (= player.dir -1) 1 0))
-      (var id (if player.mode-bleu 257 256))
+      (var id (if player.mode-bleu 258 256))
       (spr id (- player.x cam-x) player.y 0 1 flip 0 2 2)
 
       ;; DEBUG (à commenter en prod) : affiche les valeurs clés
