@@ -267,8 +267,51 @@
       (var id (if player.mode-bleu 258 256))
       (spr id (- player.x cam-x) player.y 0 1 flip 0 2 2)
 
-      ;; DEBUG (à commenter en prod) : affiche les valeurs clés
-      ;; (print (.. "vx:" (math.floor player.vx) " vy:" (math.floor player.vy)) 2 2 7)
-      ;; (print (.. "j:" player.jumps " dash:" player.dash-timer) 2 10 7)
-      ;; (print (.. "coy:" player.coyote-timer " buf:" player.jump-buffer) 2 18 7)
-    )))
+      ;; -----------------------------------------------
+      ;; G. PORTAIL ET OBJECTIF FINAL
+      ;; -----------------------------------------------
+      (let [tuile-actuelle (mget (// (+ player.x 8) 8) (// (+ player.y 8) 8))]
+        
+        ;; 1. Le portail de téléportation (ID 10)
+        (if (= tuile-actuelle 10)
+          (do
+            (set player.x (* 15 8)) ;; map-x = 15
+            (set player.y (* 15 8)) ;; map-y = 15
+            (set player.vx 0)
+            (set player.vy 0)))
+
+        ;; 2. Le bloc de victoire (ID 14 - à placer tout en haut du niveau 2)
+        (if (= tuile-actuelle 14)
+          (set etat-jeu "victoire")))
+      ;; ============================
+      ;; ÉCRAN DE VICTOIRE (Pimpé)
+     ;; ============================
+      (if (= etat-jeu "victoire")
+        (do
+          ;; 1. Un fond qui "glitch" légèrement (alterne noir et bleu très sombre)
+          (cls (if (= (% (// timer 10) 2) 0) 0 12))
+
+          ;; 2. Effet de lévitation fluide sur le texte (grâce à math.sin)
+          (var wave-y (+ 35 (* (math.sin (/ timer 10)) 5)))
+          
+          ;; Ombre portée du texte (pour le style)
+          (print "ROOT ACCESS GRANTED" 16 (+ wave-y 1) 0)
+          (print "ROOT ACCESS GRANTED" 15 wave-y 11)
+
+          ;; 3. Le texte de victoire qui clignote façon terminal
+          (if (= (% (// timer 20) 2) 0)
+            (print ">> SYSTEM HACKED <<" 20 65 couleur-texte))
+
+          ;; 4. Ton virus (ID 256) qui saute de joie au milieu de l'écran !
+          ;; math.abs et math.sin créent une courbe de rebond parfaite
+          (var rebond (* (math.abs (math.sin (/ timer 8))) -15))
+          (spr 256 112 (+ 100 rebond) 0 1 0 0 2 2)
+
+          (print "Press Z to reboot" 75 120 5)
+          (if (btnp 4) (respawn))))   
+
+          ;; DEBUG (à commenter en prod) : affiche les valeurs clés
+          ;; (print (.. "vx:" (math.floor player.vx) " vy:" (math.floor player.vy)) 2 2 7)
+          ;; (print (.. "j:" player.jumps " dash:" player.dash-timer) 2 10 7)
+          ;; (print (.. "coy:" player.coyote-timer " buf:" player.jump-buffer) 2 18 7)
+      )))
